@@ -58,10 +58,23 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME != '' && env.IMAGE_NAME || '' }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'format("refs/heads/{0}", "main")' }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
             type=ref,event=branch
             type=semver,pattern={{version}}
 
-      # Set up Buildx for multi-platform builds if needed
+      # Set up Rust
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      # Cache Rust dependencies
+      - name: Cache Cargo Registry
+        uses: swatinem/rust-cache@v2
+
+      # Build releases binary (native)
+      - name: Build Binary
+        run: cargo build --release --locked
+
+      # Set up Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
