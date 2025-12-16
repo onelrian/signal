@@ -1,20 +1,21 @@
 # Signal
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Rust](https://img.shields.io/badge/rust-1.75%2B-orange)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Stability](https://img.shields.io/badge/stability-production--ready-green)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/onelrian/signal/docker.yml?branch=main)](https://github.com/onelrian/signal/actions)
+[![Docker Pulls](https://img.shields.io/docker/pulls/onelrian/signal)](https://hub.docker.com/r/onelrian/signal)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Signal is a high-performance observability bridge that captures audit events from the NetBird Management API and forwards them to Grafana Loki. It enables real-time auditing, security monitoring, and visualization of network activity.
+Signal is a high-performance observability bridge for NetBird. It ingests audit events from the NetBird Management API and ships them directly to Grafana Loki, enabling real-time security monitoring, compliance auditing, and incident response.
 
 ## Features
 
-- **API-Driven**: Consumes the official NetBird Management API (Cloud & Self-Hosted).
-- **Secure & Scalable**: Decoupled architecture with zero dependency on local filesystem or databases.
-- **Stateful**: Intelligently tracks event cursors to ensure zero data loss or duplication across restarts.
-- **Production Ready**: Built in Rust for memory safety, low footprint, and high reliability.
+- **Zero-Dependency Architecture**: Single binary or container; no local database or filesystem required.
+- **Stateful Event Tracking**: Intelligently tracks event cursors to prevent data duplication or loss during restarts.
+- **Universal Compatibility**: Works seamlessly with both NetBird Cloud and Self-Hosted instances.
+- **Production Hardened**: Written in Rust for minimal memory footprint and high reliability.
 
 ## Architecture
+
+Signal acts as a stateless, highly available middleware between your NetBird control plane and your observability stack.
 
 ```mermaid
 flowchart LR
@@ -23,78 +24,128 @@ flowchart LR
     Loki -->|LogQL| Grafana[Grafana Dashboards]
 ```
 
-## Authentication
+## Prerequisites
 
-To use Signal, you need a Personal Access Token (PAT) from NetBird.
+### Required
 
-1. Go to your **NetBird Dashboard**.
-2. Navigate to **Users**.
-3. Select your user (or create a Service User).
-4. Click on **Personal Access Tokens** > **Create Token**.
-5. Copy the token immediately.
+- **NetBird Personal Access Token (PAT)**: Admin-level token with audit log read permissions.
+- **Grafana Loki**: A reachable Loki instance (configured for ingestion).
+- **Network Access**: Outbound HTTPS to NetBird API and Loki endpoints.
 
-## Configuration
+### Recommended for Production
 
-Signal is configured using environment variables.
+- **Secrets Management**: Store `NETBIRD_API_TOKEN` in Kubernetes Secrets or Docker Secrets.
+- **TLS**: Ensure `LOKI_URL` uses HTTPS if traversing public networks.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NETBIRD_API_TOKEN` | Personal Access Token (PAT) | - |
-| `NETBIRD_API_URL` | NetBird Management API Endpoint | `https://api.netbird.io` |
-| `LOKI_URL` | Loki Push API Endpoint | `http://loki:3100` |
-| `CHECK_INTERVAL` | Polling Frequency (seconds) | `10` |
-| `RUST_LOG` | Log Verbosity | `info` |
+## Quick Start
 
-## Deployment
+### 1. Obtain NetBird PAT
 
-### 1. Local (Cargo)
+1. Log in to your NetBird Dashboard.
+2. Navigate to **Users** → **Personal Access Tokens**.
+3. Create a token and copy it.
+
+### 2. Deploy Signal
 
 ```bash
-# 1. Export configuration
-export NETBIRD_API_TOKEN="nbp_your_token_here"
-export LOKI_URL="http://localhost:3100"
-
-# 2. Run
-cargo run --release
-```
-
-### 2. Docker Standalone
-
-Build and run the container manually.
-
-```bash
-# Pull from GHCR (GitHub)
-docker pull ghcr.io/onelrian/signal:latest
-
-# OR pull from Docker Hub
-docker pull onelrian/signal:latest
-
-# Run
 docker run -d --name signal \
+  --restart unless-stopped \
   -e NETBIRD_API_TOKEN="nbp_your_token_here" \
-  -e LOKI_URL="http://host.docker.internal:3100" \
+  -e LOKI_URL="http://loki:3100" \
   ghcr.io/onelrian/signal:latest
 ```
 
-### 3. Docker Compose
+## Production Deployment
 
-Add to your existing stack.
+### Configuration Reference
+
+Signal is configured entirely via environment variables.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `NETBIRD_API_TOKEN` | NetBird PAT with audit permissions | - | **Yes** |
+| `LOKI_URL` | Loki push endpoint (HTTP/HTTPS) | `http://loki:3100` | No |
+| `NETBIRD_API_URL` | NetBird API base URL (for Self-Hosted) | `https://api.netbird.io` | No |
+| `CHECK_INTERVAL` | Event polling interval (seconds) | `10` | No |
+| `RUST_LOG` | Log level (`error`, `warn`, `info`, `debug`) | `info` | No |
+
+### Docker Compose (Production)
 
 ```yaml
+version: '3.8'
+
 services:
   signal:
     image: ghcr.io/onelrian/signal:latest
     container_name: signal
+    restart: unless-stopped
+    
+    # Security
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    # Environment
     environment:
-      - NETBIRD_API_URL=http://netbird-management/api
       - NETBIRD_API_TOKEN=${NETBIRD_PAT}
       - LOKI_URL=http://loki:3100
-    restart: unless-stopped
+      - CHECK_INTERVAL=30
+      - RUST_LOG=info
+    
+    # Dependencies
     depends_on:
       - loki
+    
+    # Network
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
 ```
 
-## Observability
+### Kubernetes Deployment
+
+Use a simple Deployment and Secret.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: signal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: signal
+  template:
+    metadata:
+      labels:
+        app: signal
+    spec:
+      containers:
+      - name: signal
+        image: ghcr.io/onelrian/signal:latest
+        env:
+        - name: LOKI_URL
+          value: "http://loki.monitoring.svc:3100"
+        - name: NETBIRD_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: netbird-secrets
+              key: api-token
+```
+
+## Security Best Practices
+
+1.  **Secrets Management**: Never hardcode the PAT. Use platform secrets (K8s Secrets, Docker Secrets).
+2.  **Network Security**: Run Signal in a private network segment. Restrict egress to only NetBird API (443) and Loki (3100).
+3.  **Least Privilege**: The container runs as a non-root user (`uid: 1000`) by default.
+
+## Monitoring & Observability
 
 Signal enriches every event with structured metadata for querying.
 
@@ -106,16 +157,7 @@ Signal enriches every event with structured metadata for querying.
 | `activity` | Human-readable event name | `Group created` |
 | `activity_code` | Machine-readable event code | `group.add` |
 | `account_id` | Tenant/Account ID | `w89s7...` |
-
-### Example Query (LogQL)
-
-Find all user-related activities:
-
-```logql
-{job="netbird-events", activity_code=~"user.*"}
-```
-
-### Visualization
+| `initiator_email` | Actor who triggered the event | `admin@example.com` |
 
 ![Grafana Dashboard](docs/images/grafana_dashboard_example.png)
 
