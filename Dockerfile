@@ -18,7 +18,9 @@ COPY Cargo.toml Cargo.lock* ./
 COPY src ./src
 
 # Build the release binary
-RUN cargo build --release --locked
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/build/target \
+    cargo build --release --locked
 
 # Normalize binary name: cargo may emit `signal`
 # deterministic symlink `/build/target/release/signal` -> `/build/target/release/exporter` for runtime copy.
@@ -35,7 +37,6 @@ FROM debian:bullseye-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    libsqlite3-0 \
     libssl1.1 && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

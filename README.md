@@ -63,24 +63,27 @@ cargo run --release
 Build and run the container manually.
 
 ```bash
-# 1. Build
-docker build -t signal .
+# Pull from GHCR (GitHub)
+docker pull ghcr.io/onelrian/signal:main
 
-# 2. Run
+# OR pull from Docker Hub
+docker pull onelrian/signal:latest
+
+# Run
 docker run -d --name signal \
   -e NETBIRD_API_TOKEN="nbp_your_token_here" \
   -e LOKI_URL="http://host.docker.internal:3100" \
-  signal
+  ghcr.io/onelrian/signal:main
 ```
 
 ### 3. Docker Compose
 
-Add to your existing stack. This example builds directly from source.
+Add to your existing stack.
 
 ```yaml
 services:
   signal:
-    build: .
+    image: ghcr.io/onelrian/signal:main
     container_name: signal
     environment:
       - NETBIRD_API_URL=http://netbird-management/api
