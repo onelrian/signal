@@ -49,8 +49,6 @@ Signal is configured using environment variables.
 
 ### 1. Local (Cargo)
 
-Best for development and testing.
-
 ```bash
 # 1. Export configuration
 export NETBIRD_API_TOKEN="nbp_your_token_here"
