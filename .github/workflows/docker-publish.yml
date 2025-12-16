@@ -18,6 +18,9 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    # Map secret to env var so it can be used in if conditions
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     permissions:
       contents: read
       packages: write
@@ -29,10 +32,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Login to Docker Hub
+      # Login to Docker Hub (Conditional)
       - name: Log into Docker Hub
-        # Only run if not a PR and if Docker Hub secrets are available
-        if: github.event_name != 'pull_request' && secrets.DOCKERHUB_USERNAME != ''
+        if: github.event_name != 'pull_request' && env.DOCKER_USERNAME != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
