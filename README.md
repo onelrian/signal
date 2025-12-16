@@ -21,32 +21,68 @@ flowchart LR
     NA[NetBird API] -->|JSON Stream| Signal[Signal Exporter]
     Signal -->|Push API| Loki[Grafana Loki]
     Loki -->|LogQL| Grafana[Grafana Dashboards]
-    
-    style Signal fill:#f96,stroke:#333,stroke-width:2px
 ```
+
+## Authentication
+
+To use Signal, you need a Personal Access Token (PAT) from NetBird.
+
+1. Go to your **NetBird Dashboard**.
+2. Navigate to **Users**.
+3. Select your user (or create a Service User).
+4. Click on **Personal Access Tokens** > **Create Token**.
+5. Copy the token immediately.
 
 ## Configuration
 
 Signal is configured using environment variables.
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `NETBIRD_API_TOKEN` | Personal Access Token (PAT) | - | **Yes** |
-| `NETBIRD_API_URL` | NetBird Management API Endpoint | `https://api.netbird.io` | No |
-| `LOKI_URL` | Loki Push API Endpoint | `http://loki:3100` | No |
-| `CHECK_INTERVAL` | Polling Frequency (seconds) | `10` | No |
-| `RUST_LOG` | Log Verbosity | `info` | No |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NETBIRD_API_TOKEN` | Personal Access Token (PAT) | - |
+| `NETBIRD_API_URL` | NetBird Management API Endpoint | `https://api.netbird.io` |
+| `LOKI_URL` | Loki Push API Endpoint | `http://loki:3100` |
+| `CHECK_INTERVAL` | Polling Frequency (seconds) | `10` |
+| `RUST_LOG` | Log Verbosity | `info` |
 
 ## Deployment
 
-### Docker Compose
+### 1. Local (Cargo)
 
-Integrate seamlessly into an existing monitoring stack.
+Best for development and testing.
+
+```bash
+# 1. Export configuration
+export NETBIRD_API_TOKEN="nbp_your_token_here"
+export LOKI_URL="http://localhost:3100"
+
+# 2. Run
+cargo run --release
+```
+
+### 2. Docker Standalone
+
+Build and run the container manually.
+
+```bash
+# 1. Build
+docker build -t signal .
+
+# 2. Run
+docker run -d --name signal \
+  -e NETBIRD_API_TOKEN="nbp_your_token_here" \
+  -e LOKI_URL="http://host.docker.internal:3100" \
+  signal
+```
+
+### 3. Docker Compose
+
+Add to your existing stack. This example builds directly from source.
 
 ```yaml
 services:
   signal:
-    image: ghcr.io/onelrian/signal:latest
+    build: .
     container_name: signal
     environment:
       - NETBIRD_API_URL=http://netbird-management/api
@@ -57,18 +93,7 @@ services:
       - loki
 ```
 
-### Binary / Local
-
-Ideal for development or bare-metal deployments.
-
-```bash
-# 1. Export configuration
-export NETBIRD_API_TOKEN="nbp_your_token_here"
-export LOKI_URL="http://localhost:3100"
-
-# 2. Run
-./signal
-```
+![Expected Output](docs/images/running-exporter.png)
 
 ## Observability
 
@@ -94,16 +119,6 @@ Find all user-related activities:
 ### Visualization
 
 ![Grafana Dashboard](docs/images/grafana_dashboard_example.png)
-
-## Contributing
-
-Contributions are welcome. Please feel free to submit a Pull Request.
-
-1. Fork the Project
-2. Create your Feature Branch
-3. Commit your Changes
-4. Push to the Branch
-5. Open a Pull Request
 
 ## License
 
