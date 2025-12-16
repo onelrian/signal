@@ -93,8 +93,6 @@ services:
       - loki
 ```
 
-![Expected Output](docs/images/running-exporter.png)
-
 ## Observability
 
 Signal enriches every event with structured metadata for querying.
