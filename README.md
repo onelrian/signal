@@ -42,8 +42,8 @@ flowchart LR
 ### 1. Obtain NetBird PAT
 
 1. Log in to your NetBird Dashboard.
-2. Navigate to **Users** → **Personal Access Tokens**.
-3. Create a token and copy it.
+2. Go to Users > Access Tokens.
+3. Create a token and copy it (it is only shown once).
 
 ### 2. Deploy Signal
 
@@ -139,11 +139,6 @@ spec:
               key: api-token
 ```
 
-## Security Best Practices
-
-1.  **Secrets Management**: Never hardcode the PAT. Use platform secrets (K8s Secrets, Docker Secrets).
-2.  **Network Security**: Run Signal in a private network segment. Restrict egress to only NetBird API (443) and Loki (3100).
-3.  **Least Privilege**: The container runs as a non-root user (`uid: 1000`) by default.
 
 ## Monitoring & Observability
 
@@ -163,4 +158,4 @@ Signal enriches every event with structured metadata for querying.
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
