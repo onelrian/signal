@@ -1,0 +1,18 @@
+# Git settings
+.git
+.gitignore
+
+# Rust build output (Exclude debug artifacts, keep release binary for CI COPY)
+target/debug
+target/doc
+target/package
+target/test
+
+# IDE settings
+.vscode
+.idea
+*.swp
+*.iml
+
+# Environment variables
+.env

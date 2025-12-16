@@ -64,7 +64,7 @@ Build and run the container manually.
 
 ```bash
 # Pull from GHCR (GitHub)
-docker pull ghcr.io/onelrian/signal:main
+docker pull ghcr.io/onelrian/signal:latest
 
 # OR pull from Docker Hub
 docker pull onelrian/signal:latest
@@ -73,7 +73,7 @@ docker pull onelrian/signal:latest
 docker run -d --name signal \
   -e NETBIRD_API_TOKEN="nbp_your_token_here" \
   -e LOKI_URL="http://host.docker.internal:3100" \
-  ghcr.io/onelrian/signal:main
+  ghcr.io/onelrian/signal:latest
 ```
 
 ### 3. Docker Compose
@@ -83,7 +83,7 @@ Add to your existing stack.
 ```yaml
 services:
   signal:
-    image: ghcr.io/onelrian/signal:main
+    image: ghcr.io/onelrian/signal:latest
     container_name: signal
     environment:
       - NETBIRD_API_URL=http://netbird-management/api
