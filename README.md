@@ -50,8 +50,9 @@ flowchart LR
 ```bash
 docker run -d --name signal \
   --restart unless-stopped \
+  -e NETBIRD_API_URL="https://api.netbird.io/api" \
   -e NETBIRD_API_TOKEN="nbp_your_token_here" \
-  -e LOKI_URL="http://loki:3100" \
+  -e LOKI_URL="http://LOKI_URL:3100" \
   ghcr.io/onelrian/signal:latest
 ```
 
