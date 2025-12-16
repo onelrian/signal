@@ -1,11 +1,11 @@
-# Runtime stage (Debian Bullseye slim)
-FROM debian:bullseye-slim
+# Runtime stage (Debian Bookworm slim - provides glibc 2.36+ and openssl 3)
+FROM debian:bookworm-slim
 
 # Install only runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
-    libssl1.1 && \
+    libssl3 && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Create non-root user with no shell
