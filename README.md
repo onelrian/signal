@@ -52,9 +52,12 @@ docker run -d --name signal \
   --restart unless-stopped \
   -e NETBIRD_API_URL="https://api.netbird.io/api" \
   -e NETBIRD_API_TOKEN="nbp_your_token_here" \
-  -e LOKI_URL="http://LOKI_URL:3100" \
+  -e LOKI_URL="http://<LOKI_URL>" \ # Replace with your Loki URL
   ghcr.io/onelrian/signal:latest
 ```
+It will start a container named `signal` and run it in the background.
+
+![Example usage](docs/images/example.png)
 
 ## Production Deployment
 
