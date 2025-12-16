@@ -8,24 +8,17 @@ on:
     branches: [ "main" ]
 
 env:
-  # Use docker.io for Docker Hub if empty
   REGISTRY_GHCR: ghcr.io
-  # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-    # Map secret to env var so it can be used in if conditions
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     permissions:
       contents: read
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
       id-token: write
 
     steps:
@@ -57,24 +50,26 @@ jobs:
             ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
             ${{ secrets.DOCKERHUB_USERNAME != '' && env.IMAGE_NAME || '' }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'format("refs/heads/{0}", "main")' }}
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/') }}
-            type=ref,event=branch
+            # 1. Tag 'latest' ONLY when pushing to main
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            
+            # 2. Tag with the version number (1.0.0) when pushing a tag
             type=semver,pattern={{version}}
+            
+            # 3. (Optional) Also tag 'main' literally if you want image:main
+            type=ref,event=branch
 
-      # Set up Rust
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      # Cache Rust dependencies
       - name: Cache Cargo Registry
         uses: swatinem/rust-cache@v2
 
-      # Build releases binary (native)
+      # Note: We use the strategy of building in the runner and copying the binary.
+      # This utilizes the rust-cache efficiently.
       - name: Build Binary
         run: cargo build --release --locked
 
-      # Set up Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
